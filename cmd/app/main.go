@@ -1,24 +1,31 @@
 package main
 
 import (
-	"log"
-
+	"context"
 	"ipfs-visualizer/config"
 	"ipfs-visualizer/internal/app"
+	"log/slog"
+	"os"
+	"os/signal"
 )
 
 func main() {
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("config error: %v", err)
+		slog.Error("cannot load config", "error", err)
+		os.Exit(1)
 	}
+	newApplication := app.NewApp(cfg)
 
-	a, err := app.NewApp(cfg)
+	slog.Info("config", "config", *cfg)
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
+	err = newApplication.Start(ctx)
 	if err != nil {
-		log.Fatalf("app init error: %v", err)
-	}
-
-	if err := a.Start(); err != nil {
-		log.Fatalf("server error: %v", err)
+		slog.Error("", "error", err)
+		os.Exit(1)
 	}
 }
+

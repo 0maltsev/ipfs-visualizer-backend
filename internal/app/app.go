@@ -1,79 +1,61 @@
 package app
 
 import (
-	"fmt"
-	"net/http"
-
+	"context"
 	"ipfs-visualizer/config"
-	"ipfs-visualizer/internal/http/middleware"
-	"ipfs-visualizer/internal/http/handlers"
-	"ipfs-visualizer/internal/kube"
-	"ipfs-visualizer/internal/services"
-
-	"github.com/go-chi/chi/v5"
+	"log/slog"
+	"net/http"
+	"time"
+	"database/sql"
 )
 
 type App struct {
-	cfg       *config.Config
-	kube      kube.KubeClient
-	services  services.Container
-	router    chi.Router
+	router                    http.Handler
+	serverCfg                 *config.ServerConfig
+	sqlDBCfg                  *config.PostgreSqlConfig
+	sqlDBPool                 *sql.DB
 }
 
-func NewApp(cfg *config.Config) (*App, error) {
-	// init k8s client
-	kc, err := kube.NewClient(cfg)
-	if err != nil {
-		return nil, err
+func NewApp(cfg *config.Config) *App {
+	app := &App{}
+
+	app.loadServerCfg(cfg)
+	app.loadRoutes()
+	app.createStorageConnections(cfg)
+
+	return app
+}
+
+func (a *App) Start(ctx context.Context) error {
+	server := &http.Server{
+		Addr:    ":" + a.serverCfg.ServerAddressPort,
+		Handler: a.router,
 	}
 
-	a := &App{
-		cfg:    cfg,
-		kube:   kc,
-		router: chi.NewRouter(),
+	slog.Info("Server is running on port " + server.Addr)
+
+	ch := make(chan error, 1)
+
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			ch <- NewServerError("Start", "failed to start server", err)
+		}
+		close(ch)
+	}()
+
+	select {
+	case err := <-ch:
+		return err
+	case <-ctx.Done():
+		timeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+
+		err := a.CloseStorageConnections()
+		if err != nil {
+			slog.Error("failed to close storage connections", "error", err)
+		}
+
+		return server.Shutdown(timeout)
 	}
-
-	a.services = services.Container{
-		Clusters: services.NewClusterService(kc),
-		Nodes:    services.NewNodeService(kc),
-		Status:   services.NewStatusService(kc),
-		Logs:     services.NewLogsService(kc),
-	}
-
-	a.initRoutes()
-
-	return a, nil
 }
-
-func (a *App) initRoutes() {
-	r := a.router
-
-	r.Use(middleware.RequestLogger)
-	r.Use(middleware.Recovery)
-
-	h := handlers.New(a.services)
-
-	h.RegisterRoutes(r)
-}
-
-func (a *App) Start() error {
-	addr := fmt.Sprintf("%s:%d", a.cfg.HTTP.Host, a.cfg.HTTP.Port)
-	return http.ListenAndServe(addr, a.router)
-}
-
-func (a *App) handleGetClusters(w http.ResponseWriter, r *http.Request)        {}
-func (a *App) handleCreateCluster(w http.ResponseWriter, r *http.Request)      {}
-func (a *App) handleGetCluster(w http.ResponseWriter, r *http.Request)         {}
-func (a *App) handleDeleteCluster(w http.ResponseWriter, r *http.Request)      {}
-func (a *App) handleUpdateCluster(w http.ResponseWriter, r *http.Request)      {}
-func (a *App) handleScaleCluster(w http.ResponseWriter, r *http.Request)       {}
-func (a *App) handleRestartCluster(w http.ResponseWriter, r *http.Request)     {}
-
-func (a *App) handleGetNodes(w http.ResponseWriter, r *http.Request)           {}
-func (a *App) handleCreateNode(w http.ResponseWriter, r *http.Request)         {}
-func (a *App) handleGetNode(w http.ResponseWriter, r *http.Request)            {}
-func (a *App) handleDeleteNode(w http.ResponseWriter, r *http.Request)         {}
-func (a *App) handleUpdateNode(w http.ResponseWriter, r *http.Request)         {}
-func (a *App) handleGetNodeLogs(w http.ResponseWriter, r *http.Request)        {}
-
-func (a *App) handleGetClusterStatus(w http.ResponseWriter, r *http.Request)   {}

@@ -1,21 +1,26 @@
 package config
 
 import (
-    "log/slog"
+	"log/slog"
 
-    "github.com/caarlos0/env/v10"
-    "github.com/joho/godotenv"
+	"github.com/caarlos0/env/v6"
+	"github.com/joho/godotenv"
 )
 
+type Config struct {
+	ServerCfg     ServerConfig
+	PostgreSqlCfg PostgreSqlConfig
+}
+
 func LoadConfig() (*Config, error) {
-    if err := godotenv.Load(); err != nil {
-        slog.Warn(".env file not found — using environment variables only")
-    }
+	if err := godotenv.Load(); err != nil {
+		slog.Warn("'.env' is not found. Loading config from envs...")
+	}
 
-    var cfg Config
-    if err := env.Parse(&cfg); err != nil {
-        return nil, err
-    }
+	var config Config
+	if err := env.Parse(&config); err != nil {
+		return nil, err
+	}
 
-    return &cfg, nil
+	return &config, nil
 }

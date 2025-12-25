@@ -1,16 +1,16 @@
 package config
 
-type Config struct {
-    HTTP HTTPConfig `envPrefix:"HTTP_"`
-    Kube KubeConfig `envPrefix:"KUBE_"`
+type ServerConfig struct {
+	ServerAddressPort string `env:"SERVER_ADDRESS_PORT" envDefault:"3001"`
+	DestributionType  string `env:"DESTRIBUTION_TYPE"`
 }
 
-type HTTPConfig struct {
-    Host string `env:"HOST" envDefault:"0.0.0.0"`
-    Port int    `env:"PORT" envDefault:"8080"`
-}
-
-type KubeConfig struct {
-    InCluster   bool   `env:"IN_CLUSTER" envDefault:"false"`
-    Kubeconfig string `env:"KUBECONFIG" envDefault:"~/.kube/config"`
+type PostgreSqlConfig struct {
+	PostrgesqlUsername         string `env:"POSTGRE_SQL_USERNAME"`
+	PostrgesqlPassword         string `env:"POSTGRE_SQL_PASSWORD"`
+	PostrgesqlHost             string `env:"POSTGRE_SQL_HOST"`
+	PostrgesqlPort             string `env:"POSTGRE_SQL_PORT"`
+	PostrgesqlName             string `env:"POSTGRE_SQL_NAME"`
+	PostgresqlSSLMode          string `env:"POSTGRE_SQL_SSL_MODE"`
+	PostgresqlConnectionScheme string `env:"POSTGRE_SQL_CONNECTION_SCHEME"`
 }
