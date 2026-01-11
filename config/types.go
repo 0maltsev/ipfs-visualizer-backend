@@ -2,7 +2,6 @@ package config
 
 type ServerConfig struct {
 	ServerAddressPort string `env:"SERVER_ADDRESS_PORT" envDefault:"3001"`
-	DestributionType  string `env:"DESTRIBUTION_TYPE"`
 }
 
 type PostgreSqlConfig struct {
