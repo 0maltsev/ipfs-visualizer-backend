@@ -14,7 +14,6 @@ type ClusterSpec struct {
 	ConfigMaps         ConfigMapsSpec   `json:"configMaps"`
 	Secrets            SecretsSpec      `json:"secrets"`
 	BootstrapPeerID    string           `json:"bootstrapPeerId"`
-	ClusterSecret      string           `json:"clusterSecret"`
 	Nodes              []nodes.NodeSpec `json:"nodes"`
 }
 
@@ -32,3 +31,5 @@ type SecretsSpec struct {
 	ClusterSecret    string `json:"clusterSecret"`
 	BootstrapPrivKey string `json:"bootstrapPrivKey"`
 }
+
+type ClusterStatus string

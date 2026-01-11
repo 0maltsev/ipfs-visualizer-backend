@@ -3,16 +3,16 @@ package clusterhandlers
 import (
 	"encoding/json"
 	"ipfs-visualizer/internal/handlers"
+	"ipfs-visualizer/internal/services/clusters"
 	"log/slog"
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 )
 
 func (h *ClusterHandler) GetAllClusters(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Server got request to get all clusters")
-	clusterList, err := GetAllClusters()
+	clusterList, err := clusters.GetAllClusters(h.sqlDbPool)
 	if err != nil {
 		slog.Error("Error getting all agents", "error", err)
 		http.Error(w, handlers.NewClusterError("GetAllClusters", "failed to get agents", err).Error(), http.StatusInternalServerError)
@@ -36,7 +36,7 @@ func (h *ClusterHandler) CreateCluster(w http.ResponseWriter, r *http.Request) {
 	}
 
 	clusterBody := BuildCreateClusterReqBody(clusterReqBody)
-	cluster, err := CreateCluster(clusterBody)
+	cluster, err := clusters.CreateCluster(clusterBody, h.sqlDbPool, h.kubeClientSet)
 	if err != nil {
 		slog.Error("Error creating cluster", "error", err)
 		http.Error(w, handlers.NewClusterError("CreateCluster", "failed to create cluster", err).Error(), http.StatusInternalServerError)
@@ -50,14 +50,8 @@ func (h *ClusterHandler) GetClusterByID(w http.ResponseWriter, r *http.Request) 
 	slog.Info("Server got request to get cluster by ID")
 
 	clusterID := chi.URLParam(r, "clusterID")
-	intClusterID, err := strconv.Atoi(clusterID)
-	if err != nil {
-		slog.Error("Can't parse ID from URL", "error", err)
-		http.Error(w, handlers.NewRequestError("GetClusterByID", "invalid cluster ID", err).Error(), http.StatusBadRequest)
-		return
-	}
 
-	cluster, err := GetClusterByID(intClusterID)
+	cluster, err := clusters.GetClusterByID(clusterID, h.sqlDbPool)
 	if err != nil {
 		slog.Error("Error getting cluster by ID", "error", err)
 		http.Error(w, handlers.NewClusterError("GetClusterByID", "failed to get cluster", err).Error(), http.StatusInternalServerError)
@@ -75,14 +69,8 @@ func (h *ClusterHandler) DeleteClusterByID(w http.ResponseWriter, r *http.Reques
 	slog.Info("Server got request to delete cluster")
 
 	clusterID := chi.URLParam(r, "clusterID")
-	intClusterID, err := strconv.Atoi(clusterID)
-	if err != nil {
-		slog.Error("Can't parse ID from URL", "error", err)
-		http.Error(w, handlers.NewRequestError("DeleteClusterByID", "invalid cluster ID", err).Error(), http.StatusBadRequest)
-		return
-	}
 
-	if err := DeleteClusterByID(intClusterID); err != nil {
+	if err := clusters.DeleteClusterByID(clusterID, h.sqlDbPool, h.kubeClientSet); err != nil {
 		slog.Error("Error deleting cluster by ID", "error", err)
 		http.Error(w, handlers.NewClusterError("DeleteClusterByID", "failed to delete cluster", err).Error(), http.StatusInternalServerError)
 		return
@@ -102,14 +90,8 @@ func (h *ClusterHandler) UpdateClusterByID(w http.ResponseWriter, r *http.Reques
 
 	clusterBody := BuildUpdateClusterReqBody(clusterReqBody)
 	clusterID := chi.URLParam(r, "clusterID")
-	intClusterID, err := strconv.Atoi(clusterID)
-	if err != nil {
-		slog.Error("Can't parse ID from URL", "error", err)
-		http.Error(w, handlers.NewRequestError("UpdateClusterByID", "invalid cluster ID", err).Error(), http.StatusBadRequest)
-		return
-	}
 
-	cluster, err := UpdateClusterByID(intClusterID, clusterBody)
+	cluster, err := clusters.UpdateClusterByID(clusterID, clusterBody)
 	if err != nil {
 		slog.Error("Error updating cluster by ID", "error", err)
 		http.Error(w, handlers.NewClusterError("UpdateClusterByID", "failed to update cluster", err).Error(), http.StatusInternalServerError)
@@ -123,14 +105,8 @@ func (h *ClusterHandler) GetClusterStatusByID(w http.ResponseWriter, r *http.Req
 	slog.Info("Server got request to get cluster status by ID")
 
 	clusterID := chi.URLParam(r, "clusterID")
-	intClusterID, err := strconv.Atoi(clusterID)
-	if err != nil {
-		slog.Error("Can't parse ID from URL", "error", err)
-		http.Error(w, handlers.NewRequestError("GetClusterStatusByID", "invalid cluster ID", err).Error(), http.StatusBadRequest)
-		return
-	}
 
-	status, err := GetClusterStatusByID(intClusterID)
+	status, err := clusters.GetClusterStatusByID(clusterID)
 	if err != nil {
 		slog.Error("Error getting cluster status by ID", "error", err)
 		http.Error(w, handlers.NewClusterError("GetClusterStatusByID", "failed to get cluster status", err).Error(), http.StatusInternalServerError)
@@ -148,14 +124,8 @@ func (h *ClusterHandler) GetClusterNodesByID(w http.ResponseWriter, r *http.Requ
 	slog.Info("Server got request to get cluster nodes by ID")
 
 	clusterID := chi.URLParam(r, "clusterID")
-	intClusterID, err := strconv.Atoi(clusterID)
-	if err != nil {
-		slog.Error("Can't parse ID from URL", "error", err)
-		http.Error(w, handlers.NewRequestError("GetClusterNodesByID", "invalid cluster ID", err).Error(), http.StatusBadRequest)
-		return
-	}
 
-	nodeList, err := GetClusterNodesByID(intClusterID)
+	nodeList, err := clusters.GetClusterNodesByID(clusterID, h.sqlDbPool)
 	if err != nil {
 		slog.Error("Error getting cluster nodes by ID", "error", err)
 		http.Error(w, handlers.NewClusterError("GetClusterNodesByID", "failed to get cluster nodes", err).Error(), http.StatusInternalServerError)
@@ -178,19 +148,28 @@ func (h *ClusterHandler) AddNodeToClusterByID(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	clusterBody := BuildAddNodeToClusterReqBody(nodeToClusterReqBody)
 	clusterID := chi.URLParam(r, "clusterID")
-	intClusterID, err := strconv.Atoi(clusterID)
-	if err != nil {
-		slog.Error("Can't parse ID from URL", "error", err)
-		http.Error(w, handlers.NewRequestError("AddNodeToClusterByID", "invalid cluster ID", err).Error(), http.StatusBadRequest)
-		return
-	}
 
-	cluster, err := AddNodeToClusterByID(intClusterID, clusterBody)
+	cluster, err := clusters.AddNodeToClusterByID(clusterID, nodeToClusterReqBody.NodeRole, h.sqlDbPool, h.kubeClientSet, h.nodeCfg)
 	if err != nil {
 		slog.Error("Error adding node to cluster by ID", "error", err)
 		http.Error(w, handlers.NewClusterError("AddNodeToClusterByID", "failed to add node to cluster", err).Error(), http.StatusInternalServerError)
+		return
+	}
+
+	WriteAddNodeToClusterResponse(w, cluster)
+}
+
+func (h *ClusterHandler) RemoveNodeFromClusterByID(w http.ResponseWriter, r *http.Request) {
+	slog.Info("Server got request to remove node to cluster")
+
+	clusterID := chi.URLParam(r, "clusterID")
+	nodeID := chi.URLParam(r, "nodeID")
+
+	cluster, err := clusters.RemoveNodeFromClusterByID(clusterID, nodeID, h.sqlDbPool, h.kubeClientSet)
+	if err != nil {
+		slog.Error("Error removing node from cluster by ID", "error", err)
+		http.Error(w, handlers.NewClusterError("RemoveNodeFromClusterByID", "failed delete node from cluster", err).Error(), http.StatusInternalServerError)
 		return
 	}
 

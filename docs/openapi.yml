@@ -147,6 +147,25 @@ paths:
         "404":
           description: Кластер не найден
 
+  /clusters/{clusterId}/nodes/{nodeId}:
+    delete:
+      tags: [Clusters]
+      summary: Удалить ноду из кластера
+      parameters:
+        - $ref: "#/components/parameters/ClusterId"
+        - $ref: "#/components/parameters/NodeId"
+      responses:
+        "204":
+          description: Нода удалена
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Cluster"
+        "404":
+          description: Нода не найдена
+
 
   /nodes/{nodeId}:
     get:
@@ -163,17 +182,6 @@ paths:
                 $ref: "#/components/schemas/NodeSpec"
         "404":
           description: Нода или кластер не найдены
-
-    delete:
-      tags: [Nodes]
-      summary: Удалить ноду
-      parameters:
-        - $ref: "#/components/parameters/NodeId"
-      responses:
-        "204":
-          description: Удалено
-        "404":
-          description: Не найдено
 
     put:
       tags: [Nodes]

@@ -5,6 +5,7 @@ import "time"
 type NodeSqlModel struct {
 	NodeID   string  `db:"node_id" json:"nodeId"`
 	NodeName *string `db:"node_name" json:"nodeName,omitempty"`
+	ClusterName	string `db:"cluster_name" json:"clusterName,omitempty"`
 	Role     string  `db:"role" json:"role"`
 
 	SwarmTCP     int `db:"swarm_tcp" json:"swarmTCP"`

@@ -5,11 +5,17 @@ import (
 	"ipfs-visualizer/internal/services/clusters"
 	"ipfs-visualizer/internal/services/nodes"
 	"net/http"
+	"database/sql"
+	"ipfs-visualizer/config"
+	"k8s.io/client-go/kubernetes"
 )
 
-func NewClusterHandler() *ClusterHandler {
+func NewClusterHandler(sqlDbPool *sql.DB,  clusterCfg *config.ClusterConfig, kubeClientSet *kubernetes.Clientset, nodeCfg *config.NodeConfig) *ClusterHandler {
 	return &ClusterHandler{
-
+		sqlDbPool: sqlDbPool,
+		clusterCfg: clusterCfg,
+		kubeClientSet: kubeClientSet,
+		nodeCfg: nodeCfg,
 	}
 }
 
@@ -46,7 +52,7 @@ func WriteDeleteClusterResponse(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func WriteGetClusterStatusResponse(w http.ResponseWriter, status string) error {
+func WriteGetClusterStatusResponse(w http.ResponseWriter, status clusters.ClusterStatus) error {
 	response := GetClusterStatusByIDResponseBody{
 		Status: status,
 	}
@@ -86,3 +92,13 @@ func BuildAddNodeToClusterReqBody(nodeToClusterReqBody AddNodeToClusterRequestBo
 
 	}
 }
+
+func WriteRemoveNodeFromClusterResponse(w http.ResponseWriter, cluster clusters.ClusterSpec) error {
+	response := GetClusterByIDResponseBody{
+			Cluster: cluster,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNoContent)
+
+		return json.NewEncoder(w).Encode(response)
+	}

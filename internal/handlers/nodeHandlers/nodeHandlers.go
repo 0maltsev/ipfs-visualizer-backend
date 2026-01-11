@@ -3,9 +3,9 @@ package nodehandlers
 import (
 	"encoding/json"
 	"ipfs-visualizer/internal/handlers"
+	"ipfs-visualizer/internal/services/nodes"
 	"log/slog"
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -14,14 +14,8 @@ func (h *NodeHandler) GetNodeByID(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Server got request to get node by ID")
 
 	nodeID := chi.URLParam(r, "nodeID")
-	intNodeID, err := strconv.Atoi(nodeID)
-	if err != nil {
-		slog.Error("Can't parse ID from URL", "error", err)
-		http.Error(w, handlers.NewRequestError("GetNodeByID", "invalid node ID", err).Error(), http.StatusBadRequest)
-		return
-	}
 
-	node, err := GetNodeByID(intNodeID)
+	node, err := nodes.GetNodeByID(nodeID, h.sqlDbPool)
 	if err != nil {
 		slog.Error("Error getting node by ID", "error", err)
 		http.Error(w, handlers.NewNodeError("GetNodeByID", "failed to get node", err).Error(), http.StatusInternalServerError)
@@ -39,14 +33,8 @@ func (h *NodeHandler) DeleteNodeByID(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Server got request to delete node")
 
 	nodeID := chi.URLParam(r, "nodeID")
-	intNodeID, err := strconv.Atoi(nodeID)
-	if err != nil {
-		slog.Error("Can't parse ID from URL", "error", err)
-		http.Error(w, handlers.NewRequestError("DeleteNodeByID", "invalid node ID", err).Error(), http.StatusBadRequest)
-		return
-	}
 
-	if err := DeleteNodeByID(intNodeID); err != nil {
+	if err := nodes.DeleteNodeByID(nodeID, h.sqlDbPool, h.kubeClientSet); err != nil {
 		slog.Error("Error deleting node by ID", "error", err)
 		http.Error(w, handlers.NewNodeError("DeleteNodeByID", "failed to delete node", err).Error(), http.StatusInternalServerError)
 		return
@@ -66,14 +54,8 @@ func (h *NodeHandler) UpdateNodeByID(w http.ResponseWriter, r *http.Request) {
 
 	nodeBody := BuildUpdateNodeReqBody(nodeReqBody)
 	nodeID := chi.URLParam(r, "nodeID")
-	intNodeID, err := strconv.Atoi(nodeID)
-	if err != nil {
-		slog.Error("Can't parse ID from URL", "error", err)
-		http.Error(w, handlers.NewRequestError("UpdateNodeByID", "invalid node ID", err).Error(), http.StatusBadRequest)
-		return
-	}
 
-	node, err := UpdateNodeByID(intNodeID, nodeBody)
+	node, err := nodes.UpdateNodeByID(nodeID, nodeBody)
 	if err != nil {
 		slog.Error("Error updating node by ID", "error", err)
 		http.Error(w, handlers.NewNodeError("UpdateNodeByID", "failed to update node", err).Error(), http.StatusInternalServerError)
@@ -87,14 +69,8 @@ func (h *NodeHandler) GetNodeLogsByID(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Server got request to get node logs by ID")
 
 	nodeID := chi.URLParam(r, "nodeID")
-	intNodeID, err := strconv.Atoi(nodeID)
-	if err != nil {
-		slog.Error("Can't parse ID from URL", "error", err)
-		http.Error(w, handlers.NewRequestError("GetNodeLogsByID", "invalid node ID", err).Error(), http.StatusBadRequest)
-		return
-	}
 
-	nodeLogs, err := GetNodeLogsByID(intNodeID)
+	nodeLogs, err := nodes.GetNodeLogsByID(nodeID)
 	if err != nil {
 		slog.Error("Error getting node by ID", "error", err)
 		http.Error(w, handlers.NewNodeError("GetNodeLogsByID", "failed to get node logs", err).Error(), http.StatusInternalServerError)

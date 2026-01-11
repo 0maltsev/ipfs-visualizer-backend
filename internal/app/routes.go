@@ -26,7 +26,7 @@ func (a *App) loadRoutes() {
 }
 
 func (a *App) loadClusterRoutes(router chi.Router) {
-	clusterHandler := clusterhandlers.NewClusterHandler()
+	clusterHandler := clusterhandlers.NewClusterHandler(a.sqlDBPool, a.clusterCfg, a.kubernetesClient, a.nodeCfg)
 
 	router.Get("/", clusterHandler.GetAllClusters)
 	router.Post("/", clusterHandler.CreateCluster)
@@ -36,13 +36,13 @@ func (a *App) loadClusterRoutes(router chi.Router) {
 	router.Get("/{clusterID}/status", clusterHandler.GetClusterStatusByID)
 	router.Get("/{clusterID}/nodes", clusterHandler.GetClusterNodesByID)
 	router.Post("/{clusterID}/nodes", clusterHandler.AddNodeToClusterByID)
+	router.Delete("/{clusterID}/nodes/{nodeID}", clusterHandler.RemoveNodeFromClusterByID)
 }
 
 func (a *App) loadNodeRoutes(router chi.Router) {
-	nodeHandler := nodehandlers.NewNodeHandler()
+	nodeHandler := nodehandlers.NewNodeHandler(a.sqlDBPool, a.nodeCfg, a.kubernetesClient)
 
 	router.Get("/{nodeID}", nodeHandler.GetNodeByID)
-	router.Delete("/{nodeID}", nodeHandler.DeleteNodeByID)
 	router.Put("/{nodeID}", nodeHandler.UpdateNodeByID)
 	router.Get("/{nodeID}/logs", nodeHandler.GetNodeLogsByID)
 }

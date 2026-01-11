@@ -10,6 +10,9 @@ import (
 type Config struct {
 	ServerCfg     ServerConfig
 	PostgreSqlCfg PostgreSqlConfig
+	ClusterCfg    ClusterConfig
+	NodeCfg       NodeConfig
+	KubeCfg       KubeConfig
 }
 
 func LoadConfig() (*Config, error) {

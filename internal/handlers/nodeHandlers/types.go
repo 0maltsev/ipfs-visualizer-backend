@@ -1,8 +1,18 @@
 package nodehandlers
 
-import "ipfs-visualizer/internal/services/nodes"
+import (
+	"database/sql"
+	"ipfs-visualizer/config"
+	"ipfs-visualizer/internal/services/nodes"
 
-type NodeHandler struct{}
+	"k8s.io/client-go/kubernetes"
+)
+
+type NodeHandler struct {
+	sqlDbPool     *sql.DB
+	nodeCfg       *config.NodeConfig
+	kubeClientSet *kubernetes.Clientset
+}
 
 type GetNodeByIDResponseBody struct {
 	Node nodes.NodeSpec `json:"node"`
@@ -17,5 +27,5 @@ type CreateNodeRequestBody struct {
 }
 
 type UpdateNodeRequestBody struct {
-	Ports *nodes.PortsSpec  `json:"ports,omitempty"`
+	Ports *nodes.PortsSpec `json:"ports,omitempty"`
 }

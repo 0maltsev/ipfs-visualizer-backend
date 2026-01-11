@@ -2,26 +2,40 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"ipfs-visualizer/config"
+	"log"
 	"log/slog"
 	"net/http"
 	"time"
-	"database/sql"
+
+	apiextension "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/client-go/kubernetes"
 )
 
 type App struct {
-	router                    http.Handler
-	serverCfg                 *config.ServerConfig
-	sqlDBCfg                  *config.PostgreSqlConfig
-	sqlDBPool                 *sql.DB
+	router           http.Handler
+	serverCfg        *config.ServerConfig
+	clusterCfg       *config.ClusterConfig
+	nodeCfg          *config.NodeConfig
+	sqlDBCfg         *config.PostgreSqlConfig
+	sqlDBPool        *sql.DB
+	kubernetesCfg    *config.KubeConfig
+	kubernetesClient *kubernetes.Clientset
+	kubernetesAPIClient	*apiextension.Clientset
 }
 
 func NewApp(cfg *config.Config) *App {
 	app := &App{}
 
-	app.loadServerCfg(cfg)
-	app.loadRoutes()
+	app.loadGeneralCfg(cfg)
 	app.createStorageConnections(cfg)
+	err := app.createKubeEnv(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	app.loadRoutes()
 
 	return app
 }

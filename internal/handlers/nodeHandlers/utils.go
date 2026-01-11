@@ -4,11 +4,16 @@ import (
 	"encoding/json"
 	"ipfs-visualizer/internal/services/nodes"
 	"net/http"
+	"database/sql"
+	"ipfs-visualizer/config"
+	"k8s.io/client-go/kubernetes"
 )
 
-func NewNodeHandler() *NodeHandler {
+func NewNodeHandler(sqlDbPool *sql.DB, nodeCfg *config.NodeConfig, kubeClientSet *kubernetes.Clientset) *NodeHandler {
 	return &NodeHandler{
-
+		sqlDbPool: sqlDbPool,
+		nodeCfg: nodeCfg,
+		kubeClientSet: kubeClientSet,
 	}
 }
 

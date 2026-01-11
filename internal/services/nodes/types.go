@@ -3,6 +3,7 @@ package nodes
 type NodeSpec struct {
 	NodeID        string            `json:"nodeId"`
 	NodeName      string            `json:"nodeName"`
+	ClusterName   string            `json:"clusterName"`
 	Role          string            `json:"role"` // bootstrap | worker
 	Ports         PortsSpec         `json:"ports"`
 	Env           map[string]string `json:"env"`
@@ -24,6 +25,7 @@ type PortsSpec struct {
 
 type InitContainerSpec struct {
 	Name    string   `json:"name"`
+	Image   string   `json:"image"`
 	Command []string `json:"command"`
 }
 
