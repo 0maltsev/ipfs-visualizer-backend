@@ -41,6 +41,7 @@ func (a *App) loadRoutes() {
 			r.Post("/{topologyId}/deploy", th.Deploy)
 			r.Post("/{topologyId}/undeploy", th.Undeploy)
 			r.Get("/{topologyId}/status", th.GetStatus)
+			r.Get("/{topologyId}/pods/{podName}/logs", th.GetPodLogs)
 		})
 	})
 

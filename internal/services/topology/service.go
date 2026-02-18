@@ -279,3 +279,15 @@ func GetDeployStatus(ctx context.Context, db *sql.DB, k8s *kubernetes.Clientset,
 		Pods:       pods,
 	}, nil
 }
+
+func GetPodLogs(ctx context.Context, db *sql.DB, k8s *kubernetes.Clientset, topologyID, podName, container string) (string, error) {
+	t, err := GetTopologyByID(ctx, db, topologyID)
+	if err != nil || t == nil {
+		return "", fmt.Errorf("topology not found: %s", topologyID)
+	}
+	ns := "default"
+	if t.K8sNamespace != nil {
+		ns = *t.K8sNamespace
+	}
+	return kubetopo.GetPodLogs(ctx, k8s, ns, podName, container)
+}

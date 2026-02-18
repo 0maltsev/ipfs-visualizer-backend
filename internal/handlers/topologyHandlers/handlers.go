@@ -164,3 +164,22 @@ func (h *Handler) GetStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(status)
 }
+
+func (h *Handler) GetPodLogs(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	topologyID := chi.URLParam(r, "topologyId")
+	podName := chi.URLParam(r, "podName")
+	container := r.URL.Query().Get("container")
+	if podName == "" {
+		http.Error(w, "podName required", http.StatusBadRequest)
+		return
+	}
+	logs, err := topology.GetPodLogs(ctx, h.db, h.k8s, topologyID, podName, container)
+	if err != nil {
+		slog.Error("GetPodLogs", "error", err)
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Write([]byte(logs))
+}

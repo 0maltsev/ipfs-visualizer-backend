@@ -162,6 +162,32 @@ paths:
         "404":
           description: Топология не найдена
 
+  /topologies/{topologyId}/pods/{podName}/logs:
+    get:
+      tags: [Deploy]
+      summary: Логи пода (узла)
+      parameters:
+        - $ref: "#/components/parameters/TopologyId"
+        - name: podName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: container
+          in: query
+          description: ipfs | ipfs-cluster
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Логи в виде plain text
+          content:
+            text/plain:
+              schema:
+                type: string
+        "404":
+          description: Топология или под не найдены
+
 components:
 
   parameters:

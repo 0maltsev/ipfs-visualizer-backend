@@ -3,6 +3,7 @@ package topology
 import (
 	"context"
 	"fmt"
+	"io"
 	"strings"
 
 	"ipfs-visualizer/internal/kube"
@@ -367,4 +368,23 @@ func GetPodsStatus(ctx context.Context, client kubernetes.Interface, topologyID,
 		})
 	}
 	return result, nil
+}
+
+// GetPodLogs returns logs for a pod's container. container can be "ipfs", "ipfs-cluster", or "" for first container.
+func GetPodLogs(ctx context.Context, client kubernetes.Interface, namespace, podName, container string) (string, error) {
+	opts := &corev1.PodLogOptions{}
+	if container != "" {
+		opts.Container = container
+	}
+	req := client.CoreV1().Pods(namespace).GetLogs(podName, opts)
+	stream, err := req.Stream(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer stream.Close()
+	b, err := io.ReadAll(stream)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }

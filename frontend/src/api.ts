@@ -59,3 +59,10 @@ export async function fetchTopologyStatus(id: string): Promise<any> {
   if (!r.ok) throw new Error(await r.text())
   return r.json()
 }
+
+export async function fetchPodLogs(topologyId: string, podName: string, container?: string): Promise<string> {
+  const q = container ? `?container=${encodeURIComponent(container)}` : ''
+  const r = await fetch(`${API}/topologies/${topologyId}/pods/${encodeURIComponent(podName)}/logs${q}`)
+  if (!r.ok) throw new Error(await r.text())
+  return r.text()
+}
