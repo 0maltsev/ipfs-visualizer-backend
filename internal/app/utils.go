@@ -4,9 +4,7 @@ import (
 	"database/sql"
 	"ipfs-visualizer/config"
 	psql_connection "ipfs-visualizer/internal/db/psql/connection"
-	clustermodels "ipfs-visualizer/internal/db/psql/models/clusterModels"
-	kubemodels "ipfs-visualizer/internal/db/psql/models/kubeModels"
-	nodemodels "ipfs-visualizer/internal/db/psql/models/nodeModels"
+	topologymodels "ipfs-visualizer/internal/db/psql/models/topologyModels"
 	"ipfs-visualizer/internal/kube"
 	"log/slog"
 
@@ -15,8 +13,6 @@ import (
 
 func (a *App) loadGeneralCfg(cfg *config.Config) {
 	a.serverCfg = &cfg.ServerCfg
-	a.clusterCfg = &cfg.ClusterCfg
-	a.nodeCfg = &cfg.NodeCfg
 }
 
 func (a *App) createStorageConnections(cfg *config.Config) error {
@@ -33,10 +29,7 @@ func (a *App) createStorageConnections(cfg *config.Config) error {
 }
 
 func CreatePSQLTablesIfNotExist(sqlPool *sql.DB) {
-	clustermodels.CreateClustersTableIfNotExist(sqlPool)
-	nodemodels.CreateNodesTableIfNotExist(sqlPool)
-	kubemodels.CreateClusterKubeResourcesTableIfNotExist(sqlPool)
-	kubemodels.CreateNodeKubeResourcesTableIfNotExist(sqlPool)
+	topologymodels.CreateTopologyTablesIfNotExist(sqlPool)
 }
 
 func (a *App) CloseStorageConnections() error {

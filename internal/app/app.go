@@ -14,22 +14,22 @@ import (
 )
 
 type App struct {
-	router           http.Handler
-	serverCfg        *config.ServerConfig
-	clusterCfg       *config.ClusterConfig
-	nodeCfg          *config.NodeConfig
-	sqlDBCfg         *config.PostgreSqlConfig
-	sqlDBPool        *sql.DB
-	kubernetesCfg    *config.KubeConfig
-	kubernetesClient *kubernetes.Clientset
-	kubernetesAPIClient	*apiextension.Clientset
+	router              http.Handler
+	serverCfg           *config.ServerConfig
+	sqlDBCfg            *config.PostgreSqlConfig
+	sqlDBPool           *sql.DB
+	kubernetesCfg       *config.KubeConfig
+	kubernetesClient    *kubernetes.Clientset
+	kubernetesAPIClient *apiextension.Clientset
 }
 
 func NewApp(cfg *config.Config) *App {
 	app := &App{}
 
 	app.loadGeneralCfg(cfg)
-	app.createStorageConnections(cfg)
+	if err := app.createStorageConnections(cfg); err != nil {
+		log.Fatal(err)
+	}
 	err := app.createKubeEnv(cfg)
 	if err != nil {
 		log.Fatal(err)

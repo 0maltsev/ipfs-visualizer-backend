@@ -3,12 +3,13 @@ package kube
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/hex"
 
 	libp2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-func generateClusterSecret() (string, error) {
+func GenerateClusterSecret() (string, error) {
 	const secretSize = 32 // bytes
 
 	buf := make([]byte, secretSize)
@@ -16,7 +17,7 @@ func generateClusterSecret() (string, error) {
 		return "", err
 	}
 
-	return base64.StdEncoding.EncodeToString(buf), nil
+	return hex.EncodeToString(buf), nil
 }
 
 type BootstrapKeyPair struct {
@@ -24,7 +25,7 @@ type BootstrapKeyPair struct {
 	PeerID     string
 }
 
-func generateBootstrapPrivateKey() (*BootstrapKeyPair, error) {
+func GenerateBootstrapPrivateKey() (*BootstrapKeyPair, error) {
 	// Генерируем Ed25519 ключ
 	privKey, pubKey, err := libp2pcrypto.GenerateEd25519Key(nil)
 	if err != nil {

@@ -1,8 +1,7 @@
 package app
 
 import (
-	clusterhandlers "ipfs-visualizer/internal/handlers/clusterHandlers"
-	nodehandlers "ipfs-visualizer/internal/handlers/nodeHandlers"
+	topologyhandlers "ipfs-visualizer/internal/handlers/topologyHandlers"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -12,37 +11,38 @@ import (
 func (a *App) loadRoutes() {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
+
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	})
 
 	router.Route("/v1", func(r chi.Router) {
 		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})
 
-		r.Route("/clusters", a.loadClusterRoutes)
-		r.Route("/nodes", a.loadNodeRoutes)
+		th := topologyhandlers.NewHandler(a.sqlDBPool, a.kubernetesClient)
+		r.Route("/topologies", func(r chi.Router) {
+			r.Get("/", th.GetAll)
+			r.Post("/", th.Create)
+			r.Get("/{topologyId}", th.GetByID)
+			r.Put("/{topologyId}", th.Update)
+			r.Delete("/{topologyId}", th.Delete)
+			r.Post("/{topologyId}/deploy", th.Deploy)
+			r.Post("/{topologyId}/undeploy", th.Undeploy)
+			r.Get("/{topologyId}/status", th.GetStatus)
+		})
 	})
 
 	a.router = router
-}
-
-func (a *App) loadClusterRoutes(router chi.Router) {
-	clusterHandler := clusterhandlers.NewClusterHandler(a.sqlDBPool, a.clusterCfg, a.kubernetesClient, a.nodeCfg)
-
-	router.Get("/", clusterHandler.GetAllClusters)
-	router.Post("/", clusterHandler.CreateCluster)
-	router.Get("/{clusterID}", clusterHandler.GetClusterByID)
-	router.Delete("/{clusterID}", clusterHandler.DeleteClusterByID)
-	router.Put("/{clusterID}", clusterHandler.UpdateClusterByID)
-	router.Get("/{clusterID}/status", clusterHandler.GetClusterStatusByID)
-	router.Get("/{clusterID}/nodes", clusterHandler.GetClusterNodesByID)
-	router.Post("/{clusterID}/nodes", clusterHandler.AddNodeToClusterByID)
-	router.Delete("/{clusterID}/nodes/{nodeID}", clusterHandler.RemoveNodeFromClusterByID)
-}
-
-func (a *App) loadNodeRoutes(router chi.Router) {
-	nodeHandler := nodehandlers.NewNodeHandler(a.sqlDBPool, a.nodeCfg, a.kubernetesClient)
-
-	router.Get("/{nodeID}", nodeHandler.GetNodeByID)
-	router.Put("/{nodeID}", nodeHandler.UpdateNodeByID)
-	router.Get("/{nodeID}/logs", nodeHandler.GetNodeLogsByID)
 }

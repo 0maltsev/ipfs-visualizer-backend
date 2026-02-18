@@ -10,21 +10,19 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o /myapp ./cmd/app
-
+RUN go build -o /app/server ./cmd/app
 
 # Deploy the application binary into a lean image
-FROM alpine:latest AS build-release-stage
+FROM alpine:latest
 
-WORKDIR /build
+WORKDIR /app
 
-COPY --from=build-stage /myapp/ /myapp
+COPY --from=build-stage /app/server /app/server
 
 ENV DOCKER_API_VERSION=1.41
 
 EXPOSE 3001
-RUN apk add libc6-compat
 
-# USER nonroot:nonroot
+RUN apk add --no-cache libc6-compat ca-certificates
 
-ENTRYPOINT /myapp
+ENTRYPOINT ["/app/server"]

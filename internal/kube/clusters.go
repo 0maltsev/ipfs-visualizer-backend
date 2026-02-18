@@ -95,12 +95,12 @@ func createClusterSecrets(
     spec ClusterKubeResources,
 ) (*ClusterSecrets, error) {
 
-	clusterSecret, err := generateClusterSecret()
+	clusterSecret, err := GenerateClusterSecret()
 	if err != nil {
 		return  nil, err
 	}
 
-	bootstrapPrivKey, err := generateBootstrapPrivateKey()
+	bootstrapPrivKey, err := GenerateBootstrapPrivateKey()
 	if err != nil {
 		return  nil, err
 	}

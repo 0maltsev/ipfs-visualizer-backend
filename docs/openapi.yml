@@ -1,433 +1,323 @@
 openapi: 3.1.0
 info:
-  title: IPFS Cluster Orchestrator API
-  version: 1.0.0
-  description: >
-    API для управления кластером IPFS в Kubernetes.
-    Используется фронтендом (React Canvas) для создания, обновления и мониторинга кластеров.
+  title: IPFS Cluster Topology Orchestrator API
+  version: 2.0.0
+  description: |
+    API оркестратора IPFS-кластера на основе топологии.
+    Пользователь создаёт топологию на canvas: узлы и связи между ними.
+    Ребро (edge) A → B означает: узел A бустрапится к узлу B (B — bootstrap).
+    После сохранения топологию можно задеплоить в Kubernetes.
 
 servers:
-  - url: http://localhost:8080/v1
+  - url: http://localhost:3001/v1
     description: Local Dev
 
 tags:
-  - name: Clusters
-    description: Управление IPFS кластерами
-  - name: Nodes
-    description: Управление нодами внутри кластера
+  - name: Topologies
+    description: Топологии сети (узлы + рёбра)
+  - name: Deploy
+    description: Деплой и статус в Kubernetes
 
 paths:
 
-  /clusters:
+  /topologies:
     get:
-      tags: [Clusters]
-      summary: Получить список всех кластеров
+      tags: [Topologies]
+      summary: Список всех топологий
       responses:
         "200":
-          description: Список кластеров
+          description: Список топологий
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Cluster"
+                  $ref: "#/components/schemas/TopologySummary"
 
     post:
-      tags: [Clusters]
-      summary: Создать новый кластер
+      tags: [Topologies]
+      summary: Создать топологию
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ClusterCreateRequest"
+              $ref: "#/components/schemas/TopologyCreate"
       responses:
         "201":
-          description: Кластер создан
+          description: Топология создана
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Cluster"
+                $ref: "#/components/schemas/Topology"
         "400":
           description: Ошибка валидации
 
-  /clusters/{clusterId}:
+  /topologies/{topologyId}:
     get:
-      tags: [Clusters]
-      summary: Информация о кластере
+      tags: [Topologies]
+      summary: Получить топологию по ID
       parameters:
-        - $ref: "#/components/parameters/ClusterId"
+        - $ref: "#/components/parameters/TopologyId"
       responses:
         "200":
-          description: Информация о кластере
+          description: Топология
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Cluster"
+                $ref: "#/components/schemas/Topology"
         "404":
-          description: Кластер не найден
-
-    delete:
-      tags: [Clusters]
-      summary: Удалить кластер
-      parameters:
-        - $ref: "#/components/parameters/ClusterId"
-      responses:
-        "204":
-          description: Кластер удалён
-        "404":
-          description: Кластер не найден
+          description: Топология не найдена
 
     put:
-      tags: [Clusters]
-      summary: Обновить конфигурацию кластера
+      tags: [Topologies]
+      summary: Обновить топологию (узлы и рёбра)
       parameters:
-        - $ref: "#/components/parameters/ClusterId"
+        - $ref: "#/components/parameters/TopologyId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ClusterUpdateRequest"
+              $ref: "#/components/schemas/TopologyUpdate"
       responses:
         "200":
-          description: Кластер обновлён
+          description: Топология обновлена
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Cluster"
+                $ref: "#/components/schemas/Topology"
+        "400":
+          description: Ошибка валидации
         "404":
-          description: Кластер не найден
+          description: Топология не найдена
 
-  /clusters/{clusterId}/status:
-    get:
-      tags: [Clusters]
-      summary: Состояние кластера (pods, phase, IPFS connectivity)
-      parameters:
-        - $ref: "#/components/parameters/ClusterId"
-      responses:
-        "200":
-          description: Статус кластера
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ClusterStatus"
-        "404":
-          description: Кластер не найден
-  
-  /clusters/{clusterId}/nodes:
-    get:
-      tags: [Clusters]
-      summary: Получить список нод в кластере
-      parameters:
-        - $ref: "#/components/parameters/ClusterId"
-      responses:
-        "200":
-          description: Список нод
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/NodeSpec"
-
-    post:
-      tags: [Clusters]
-      summary: Добавить новую ноду в кластер
-      parameters:
-        - $ref: "#/components/parameters/ClusterId"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NodeSpecCreate"
-      responses:
-        "201":
-          description: Нода создана
-        "404":
-          description: Кластер не найден
-
-  /clusters/{clusterId}/nodes/{nodeId}:
     delete:
-      tags: [Clusters]
-      summary: Удалить ноду из кластера
+      tags: [Topologies]
+      summary: Удалить топологию
       parameters:
-        - $ref: "#/components/parameters/ClusterId"
-        - $ref: "#/components/parameters/NodeId"
+        - $ref: "#/components/parameters/TopologyId"
       responses:
         "204":
-          description: Нода удалена
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Cluster"
+          description: Топология удалена
         "404":
-          description: Нода не найдена
+          description: Топология не найдена
 
-
-  /nodes/{nodeId}:
-    get:
-      tags: [Nodes]
-      summary: Получить инфо о ноде
+  /topologies/{topologyId}/deploy:
+    post:
+      tags: [Deploy]
+      summary: Задеплоить топологию в Kubernetes
       parameters:
-        - $ref: "#/components/parameters/NodeId"
-      responses:
-        "200":
-          description: Информация о ноде
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NodeSpec"
-        "404":
-          description: Нода или кластер не найдены
-
-    put:
-      tags: [Nodes]
-      summary: Обновить параметры ноды
-      parameters:
-        - $ref: "#/components/parameters/NodeId"
+        - $ref: "#/components/parameters/TopologyId"
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NodeSpecUpdate"
+              type: object
+              properties:
+                namespace:
+                  type: string
+                  default: default
       responses:
-        "200":
-          description: Обновлено
-        "404":
-          description: Не найдено
-
-  /nodes/{nodeId}/logs:
-    get:
-      tags: [Nodes]
-      summary: Логи IPFS/Cluster для конкретного pod
-      parameters:
-        - $ref: "#/components/parameters/NodeId"
-      responses:
-        "200":
-          description: Логи ноды
+        "202":
+          description: Деплой запущен
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
+                $ref: "#/components/schemas/DeployResult"
+        "400":
+          description: Некорректная топология (нет bootstrap, циклы и т.д.)
         "404":
-          description: Нода не найдена
+          description: Топология не найдена
+
+  /topologies/{topologyId}/undeploy:
+    post:
+      tags: [Deploy]
+      summary: Удалить деплой из Kubernetes
+      parameters:
+        - $ref: "#/components/parameters/TopologyId"
+      responses:
+        "202":
+          description: Удаление запущено
+        "404":
+          description: Топология не найдена
+
+  /topologies/{topologyId}/status:
+    get:
+      tags: [Deploy]
+      summary: Статус деплоя топологии
+      parameters:
+        - $ref: "#/components/parameters/TopologyId"
+      responses:
+        "200":
+          description: Статус деплоя
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeployStatus"
+        "404":
+          description: Топология не найдена
 
 components:
 
   parameters:
-    ClusterId:
-      name: clusterId
+    TopologyId:
+      name: topologyId
       in: path
       required: true
       schema:
         type: string
-
-    NodeId: 
-      name: nodeId 
-      in: path 
-      required: true 
-      schema: 
-        type: string
+        format: uuid
 
   schemas:
 
-    Cluster:
+    TopologySummary:
       type: object
       properties:
-        clusterId:
+        topologyId:
           type: string
-        clusterName:
+          format: uuid
+        name:
           type: string
-        replicas:
+        nodeCount:
           type: integer
-        serviceType:
+        edgeCount:
+          type: integer
+        deployStatus:
           type: string
-        storageClass:
+          enum: [none, deploying, running, degraded, error]
+        createdAt:
           type: string
-        clusterStorageSize:
-          type: string
-        ipfsStorageSize:
-          type: string
-        images:
-          $ref: "#/components/schemas/ImagesSpec"
-        configMaps:
-          $ref: "#/components/schemas/ConfigMapsSpec"
-        nodes:
-          type: array
-          items:
-            $ref: "#/components/schemas/NodeSpec"
-        bootstrapPeerID:
-          type: string
-          readOnly: true
-        clusterSecret:
-          type: string
-          readOnly: true
+          format: date-time
 
-    ClusterCreateRequest:
+    Topology:
       type: object
-      required: [clusterName, replicas]
       properties:
-        clusterName:
+        topologyId:
           type: string
-        replicas:
-          type: integer
-          minimum: 1
-        clusterStorageSize:
-          type: string
-        ipfsStorageSize:
+          format: uuid
+        name:
           type: string
         nodes:
           type: array
           items:
-            $ref: "#/components/schemas/NodeSpecCreate"
+            $ref: "#/components/schemas/TopologyNode"
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/TopologyEdge"
+        deployStatus:
+          type: string
+          enum: [none, deploying, running, degraded, error]
+        k8sNamespace:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
-    ClusterUpdateRequest:
+    TopologyNode:
       type: object
+      required: [nodeId, label, position]
       properties:
-        replicas:
-          type: integer
-        serviceType:
+        nodeId:
           type: string
-        storageClass:
+        label:
           type: string
-        clusterStorageSize:
+        position:
+          $ref: "#/components/schemas/Position"
+        role:
           type: string
-        ipfsStorageSize:
+          enum: [bootstrap, worker]
+          default: worker
+
+    TopologyEdge:
+      type: object
+      required: [edgeId, sourceNodeId, targetNodeId]
+      properties:
+        edgeId:
+          type: string
+        sourceNodeId:
+          type: string
+          description: Worker (источник) — bootstraps to target
+        targetNodeId:
+          type: string
+          description: Bootstrap (цель) — принимает соединения от source
+
+    Position:
+      type: object
+      required: [x, y]
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+
+    TopologyCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
           type: string
         nodes:
           type: array
           items:
-            $ref: "#/components/schemas/NodeSpecUpdate"
+            $ref: "#/components/schemas/TopologyNode"
+          default: []
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/TopologyEdge"
+          default: []
 
-    ImagesSpec:
+    TopologyUpdate:
       type: object
       properties:
-        ipfs:
+        name:
           type: string
-        ipfsCluster:
-          type: string
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/TopologyNode"
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/TopologyEdge"
 
-    ConfigMapsSpec:
+    DeployResult:
       type: object
       properties:
-        envConfig:
+        topologyId:
           type: string
-        scriptsConfig:
+        status:
+          type: string
+          enum: [deploying]
+        message:
           type: string
 
-    NodeSpec:
+    DeployStatus:
+      type: object
+      properties:
+        topologyId:
+          type: string
+        status:
+          type: string
+          enum: [none, deploying, running, degraded, error]
+        message:
+          type: string
+        pods:
+          type: array
+          items:
+            $ref: "#/components/schemas/PodStatus"
+
+    PodStatus:
       type: object
       properties:
         nodeId:
           type: string
-        nodeName:
-          type: string
-        role:
-          type: string
-          enum: [bootstrap, worker]
-        ports:
-          $ref: "#/components/schemas/PortsSpec"
-        env:
-          type: object
-          additionalProperties:
-            type: string
-        initContainer:
-          $ref: "#/components/schemas/InitContainerSpec"
-        containers:
-          type: array
-          items:
-            $ref: "#/components/schemas/ContainerSpec"
-        volumes:
-          $ref: "#/components/schemas/VolumesSpec"
-
-    NodeSpecCreate:
-      type: object
-      required: [role]
-      properties:
-        role:
-          type: string
-          enum: [bootstrap, worker]
-
-    NodeSpecUpdate:
-      type: object
-      properties:
-        ports:
-          $ref: "#/components/schemas/PortsSpec"
-
-    PortsSpec:
-      type: object
-      properties:
-        swarmTCP:
-          type: integer
-        swarmUDP:
-          type: integer
-        api:
-          type: integer
-        httpGateway:
-          type: integer
-        ws:
-          type: integer
-        clusterAPI:
-          type: integer
-        clusterProxy:
-          type: integer
-        clusterSwarm:
-          type: integer
-
-    InitContainerSpec:
-      type: object
-      properties:
-        name:
-          type: string
-        command:
-          type: array
-          items:
-            type: string
-
-    ContainerSpec:
-      type: object
-      properties:
-        name:
-          type: string
-        image:
-          type: string
-        command:
-          type: array
-          items:
-            type: string
-        ports:
-          type: array
-          items:
-            type: string
-
-    VolumesSpec:
-      type: object
-      properties:
-        ipfsStorage:
-          type: string
-        clusterStorage:
-          type: string
-        scriptsConfig:
-          type: string
-
-    ClusterStatus:
-      type: object
-      properties:
-        status:
-          type: string
-          enum: [creating, running, degraded, error]
-
-    NodeStatus:
-      type: object
-      properties:
-        nodeName:
-          type: string
-        role:
-          type: string
-          enum: [bootstrap, worker]
         podName:
           type: string
         phase:
